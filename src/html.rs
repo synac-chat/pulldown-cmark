@@ -88,21 +88,27 @@ impl<'a, 'b, I: Iterator<Item=Event<'a>>> Ctx<'b, I> {
             Tag::Emphasis => self.buf.push_str("<i>"),
             Tag::Strong => self.buf.push_str("<b>"),
             Tag::Code => self.buf.push_str("<tt>"),
+            Tag::Link(dest, title) => {
+                self.buf.push_str("<a href=\"");
+                escape_href(self.buf, &dest);
+                if !title.is_empty() {
+                    self.buf.push_str("\" title=\"");
+                    escape_html(self.buf, &title, false);
+                }
+                self.buf.push_str("\">");
+            }
             _ => ()
         }
     }
 
     fn end_tag(&mut self, tag: Tag) {
         match tag {
-            Tag::Header(_) => self.buf.push_str("</big>"),
+            Tag::Header(level) => self.buf.push_str("</big>"),
             Tag::CodeBlock(_) => self.buf.push_str("</tt>\n"),
             Tag::Emphasis => self.buf.push_str("</i>"),
             Tag::Strong => self.buf.push_str("</b>"),
             Tag::Code => self.buf.push_str("</tt>"),
-            Tag::Link(dest, _title) => {
-                self.buf.push_str(": ");
-                self.buf.push_str(&dest);
-            }
+            Tag::Link(_, _) => self.buf.push_str("</a>"),
             _ => ()
         }
     }
