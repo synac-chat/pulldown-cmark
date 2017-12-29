@@ -75,6 +75,7 @@ impl<'a, 'b, I: Iterator<Item=Event<'a>>> Ctx<'b, I> {
                         escaped.reserve(string.len() + 4);
                         escaped.insert_str(appended + link.end(), "</a>");
                         escaped.insert_str(appended + link.start(), &string);
+                        appended += string.len() + 4;
                     }
                     self.buf.push_str(&escaped);
                 }
