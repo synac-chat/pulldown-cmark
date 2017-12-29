@@ -1,22 +1,24 @@
 [package]
-name = "pulldown-cmark"
-version = "0.1.0"
-authors = [ "Raph Levien <raph@google.com>" ]
-license = "MIT"
-description = "A pull parser for CommonMark"
-repository = "https://github.com/google/pulldown-cmark"
-keywords = ["markdown", "commonmark"]
-
+authors = ["Raph Levien <raph@google.com>"]
 build = "build.rs"
-
+description = "A pull parser for CommonMark"
+keywords = ["markdown", "commonmark"]
+license = "MIT"
+name = "pulldown-cmark"
+repository = "https://github.com/google/pulldown-cmark"
+version = "0.1.0"
 [[bin]]
+doc = false
 name = "pulldown-cmark"
 required-features = ["getopts"]
-doc = false
 
 [dependencies]
 bitflags = "0.9"
-getopts = { version = "0.2", optional = true }
+linkify = "0.2.0"
+
+[dependencies.getopts]
+optional = true
+version = "0.2"
 
 [features]
 default = ["getopts"]

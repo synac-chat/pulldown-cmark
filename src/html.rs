@@ -26,10 +26,11 @@ use std::borrow::Cow;
 use std::collections::HashMap;
 use std::fmt::Write;
 
-use parse::{Event, Tag};
-use parse::Event::{Start, End, Text, Html, InlineHtml, SoftBreak, HardBreak, FootnoteReference};
-use parse::Alignment;
 use escape::{escape_html, escape_href};
+use parse::Alignment;
+use parse::Event::{Start, End, Text, Html, InlineHtml, SoftBreak, HardBreak, FootnoteReference};
+use parse::{Event, Tag};
+use linkify::{LinkFinder, LinkKind};
 
 enum TableState {
     Head,
@@ -57,7 +58,26 @@ impl<'a, 'b, I: Iterator<Item=Event<'a>>> Ctx<'b, I> {
             match event {
                 Start(tag) => self.start_tag(tag, &mut numbers),
                 End(tag) => self.end_tag(tag),
-                Text(text) => escape_html(self.buf, &text, false),
+                Text(text) => {
+                    let mut finder = LinkFinder::new();
+                    finder.kinds(&[LinkKind::Url]);
+                    let mut appended = 0;
+
+                    let mut escaped = String::with_capacity(text.len());
+                    escape_html(&mut escaped, &text, false);
+
+                    for link in finder.links(&escaped.clone()) {
+                        let mut string = String::with_capacity(9 + (link.end() - link.start()) + 2);
+                        string.push_str("<a href=\"");
+                        escape_href(&mut string, link.as_str());
+                        string.push_str("\">");
+
+                        escaped.reserve(string.len() + 4);
+                        escaped.insert_str(appended + link.end(), "</a>");
+                        escaped.insert_str(appended + link.start(), &string);
+                    }
+                    self.buf.push_str(&escaped);
+                }
                 Html(html) |
                 InlineHtml(html) => self.buf.push_str(&html),
                 SoftBreak => self.buf.push('\n'),
