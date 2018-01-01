@@ -24,25 +24,15 @@
 
 use std::borrow::Cow;
 use std::collections::HashMap;
-use std::fmt::Write;
 
 use escape::{escape_html, escape_href};
-use parse::Alignment;
 use parse::Event::{Start, End, Text, Html, InlineHtml, SoftBreak, HardBreak, FootnoteReference};
 use parse::{Event, Tag};
 use linkify::{LinkFinder, LinkKind};
 
-enum TableState {
-    Head,
-    Body,
-}
-
 struct Ctx<'b, I> {
     iter: I,
-    buf: &'b mut String,
-    table_state: TableState,
-    table_alignments: Vec<Alignment>,
-    table_cell_index: usize,
+    buf: &'b mut String
 }
 
 impl<'a, 'b, I: Iterator<Item=Event<'a>>> Ctx<'b, I> {
@@ -96,13 +86,13 @@ impl<'a, 'b, I: Iterator<Item=Event<'a>>> Ctx<'b, I> {
         }
     }
 
-    fn start_tag(&mut self, tag: Tag<'a>, numbers: &mut HashMap<Cow<'a, str>, usize>) {
+    fn start_tag(&mut self, tag: Tag<'a>, _numbers: &mut HashMap<Cow<'a, str>, usize>) {
         match tag {
-            Tag::Header(level) => {
+            Tag::Header(_) => {
                 self.fresh_line();
                 self.buf.push_str("<big>");
             }
-            Tag::CodeBlock(info) => {
+            Tag::CodeBlock(_) => {
                 self.fresh_line();
                 self.buf.push_str("<tt>");
             }
@@ -124,36 +114,13 @@ impl<'a, 'b, I: Iterator<Item=Event<'a>>> Ctx<'b, I> {
 
     fn end_tag(&mut self, tag: Tag) {
         match tag {
-            Tag::Header(level) => self.buf.push_str("</big>"),
+            Tag::Header(_) => self.buf.push_str("</big>"),
             Tag::CodeBlock(_) => self.buf.push_str("</tt>\n"),
             Tag::Emphasis => self.buf.push_str("</i>"),
             Tag::Strong => self.buf.push_str("</b>"),
             Tag::Code => self.buf.push_str("</tt>"),
             Tag::Link(_, _) => self.buf.push_str("</a>"),
             _ => ()
-        }
-    }
-
-    // run raw text, consuming end tag
-    fn raw_text<'c>(&mut self, numbers: &'c mut HashMap<Cow<'a, str>, usize>) {
-        let mut nest = 0;
-        while let Some(event) = self.iter.next() {
-            match event {
-                Start(_) => nest += 1,
-                End(_) => {
-                    if nest == 0 { break; }
-                    nest -= 1;
-                }
-                Text(text) => escape_html(self.buf, &text, false),
-                Html(_) => (),
-                InlineHtml(html) => escape_html(self.buf, &html, false),
-                SoftBreak | HardBreak => self.buf.push(' '),
-                FootnoteReference(name) => {
-                    let len = numbers.len() + 1;
-                    let number = numbers.entry(name).or_insert(len);
-                    self.buf.push_str(&*format!("[{}]", number));
-                }
-            }
         }
     }
 }
@@ -188,10 +155,7 @@ impl<'a, 'b, I: Iterator<Item=Event<'a>>> Ctx<'b, I> {
 pub fn push_html<'a, I: Iterator<Item=Event<'a>>>(buf: &mut String, iter: I) {
     let mut ctx = Ctx {
         iter: iter,
-        buf: buf,
-        table_state: TableState::Head,
-        table_alignments: vec![],
-        table_cell_index: 0,
+        buf: buf
     };
     ctx.run();
 }
